@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="hu"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>Board.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">connect4</a> &gt; <a href="index.source.html" class="el_package">com.connect4</a> &gt; <span class="el_source">Board.java</span></div><h1>Board.java</h1><pre class="source lang-java linenums">package com.connect4;
+
+/**
+ * A Board osztály felelős a Connect4 játék táblájának kezeléséért.
+ */
+public class Board {
+    /** A táblázat sorainak száma. */
+    private final int rows;
+
+    /** A táblázat oszlopainak száma. */
+    private final int columns;
+
+    /** A táblázat mátrixa. */
+    private final char[][] grid;
+
+    /** A nyeréshez szükséges sorozatok száma. */
+    private static final int WINNING_COUNT = 4;
+
+    /** HashCode mágikus szám. */
+    private static final int HASH_MULTIPLIER = 31;
+
+    /** A játékosok tokenjei. */
+    private static final char EMPTY_SLOT = '\0';
+
+    /** Ellenőrzéshez szükséges mágikus számok. */
+    private static final int THREE = 3;
+
+    /**
+     * Konstruktor a Board osztályhoz.
+     *
+     * @param rowsParam A sorok száma a táblán.
+     * @param columnsParam Az oszlopok száma a táblán.
+     */
+<span class="fc" id="L34">    public Board(final int rowsParam, final int columnsParam) {</span>
+<span class="fc" id="L35">        this.rows = rowsParam;</span>
+<span class="fc" id="L36">        this.columns = columnsParam;</span>
+<span class="fc" id="L37">        this.grid = new char[rows][columns];</span>
+<span class="fc" id="L38">    }</span>
+
+    /**
+     * Elhelyezi a játékos tokenjét a megadott oszlopban.
+     *
+     * @param column Az oszlop, ahova a token kerül.
+     * @param token  A játékos tokenje.
+     * @return True, ha a token sikeresen elhelyezve, különben false.
+     */
+    public boolean placeToken(final int column, final char token) {
+<span class="pc bpc" id="L48" title="1 of 4 branches missed.">        if (column &lt; 0 || column &gt;= columns) {</span>
+<span class="fc" id="L49">            throw new IllegalArgumentException(&quot;Invalid column index.&quot;);</span>
+        }
+
+<span class="fc bfc" id="L52" title="All 2 branches covered.">        for (int row = rows - 1; row &gt;= 0; row--) {</span>
+<span class="fc bfc" id="L53" title="All 2 branches covered.">            if (grid[row][column] == EMPTY_SLOT) {</span>
+<span class="fc" id="L54">                grid[row][column] = token;</span>
+<span class="fc" id="L55">                return true;</span>
+            }
+        }
+<span class="fc" id="L58">        return false; // Oszlop tele van</span>
+    }
+
+    /**
+     * Visszaadja a táblázatot.
+     *
+     * @return A táblázat mátrixa.
+     */
+    public char[][] getGrid() {
+<span class="fc" id="L67">        return grid;</span>
+    }
+
+    /**
+     * Visszaadja a táblázat sorainak számát.
+     *
+     * @return A táblázat sorainak száma.
+     */
+    public int getRows() {
+<span class="fc" id="L76">        return rows;</span>
+    }
+
+    /**
+     * Visszaadja a táblázat oszlopainak számát.
+     *
+     * @return A táblázat oszlopainak száma.
+     */
+    public int getColumns() {
+<span class="fc" id="L85">        return columns;</span>
+    }
+
+    /**
+     * Ellenőrzés, hogy a megadott oszlop érvényes-e.
+     *
+     * @param column Az oszlop, amelyet ellenőrizni kell.
+     * @return True, ha az oszlop érvényes, különben false.
+     */
+    public boolean isColumnValid(final int column) {
+<span class="pc bpc" id="L95" title="3 of 6 branches missed.">        return column &gt;= 0</span>
+                &amp;&amp; column &lt; columns
+                &amp;&amp; grid[0][column] == EMPTY_SLOT; // Az első sor ellenőrzése
+    }
+
+    /**
+     * Ellenőrzi, hogy a táblázat tele van-e.
+     *
+     * @return True, ha a tábla tele van, különben false.
+     */
+    public boolean isFull() {
+<span class="fc bfc" id="L106" title="All 2 branches covered.">        for (int col = 0; col &lt; columns; col++) {</span>
+<span class="fc bfc" id="L107" title="All 2 branches covered.">            if (grid[0][col] == EMPTY_SLOT) {</span>
+<span class="fc" id="L108">                return false; // Ha bármelyik oszlopban van üres hely, nem tele</span>
+            }
+        }
+<span class="fc" id="L111">        return true; // Minden oszlop tele van</span>
+    }
+
+    /**
+     * Ellenőrzi, hogy van-e győztes a táblázatban.
+     *
+     * @return True, ha van győztes, különben false.
+     */
+    public boolean checkWin() {
+        // Ellenőrzés vízszintesen
+<span class="fc bfc" id="L121" title="All 2 branches covered.">        for (int row = 0; row &lt; rows; row++) {</span>
+<span class="fc bfc" id="L122" title="All 2 branches covered.">            for (int col = 0; col &lt;= columns - WINNING_COUNT; col++) {</span>
+<span class="fc bfc" id="L123" title="All 2 branches covered.">                if (grid[row][col] != EMPTY_SLOT) {</span>
+<span class="fc bfc" id="L124" title="All 6 branches covered.">                    if (grid[row][col] == grid[row][col + 1]</span>
+                            &amp;&amp; grid[row][col] == grid[row][col + 2]
+                            &amp;&amp; grid[row][col] == grid[row][col + THREE]) {
+<span class="fc" id="L127">                        return true;</span>
+                    }
+                }
+            }
+        }
+
+        // Ellenőrzés függőlegesen
+<span class="fc bfc" id="L134" title="All 2 branches covered.">        for (int col = 0; col &lt; columns; col++) {</span>
+<span class="fc bfc" id="L135" title="All 2 branches covered.">            for (int row = 0; row &lt;= rows - WINNING_COUNT; row++) {</span>
+<span class="fc bfc" id="L136" title="All 2 branches covered.">                if (grid[row][col] != EMPTY_SLOT) {</span>
+<span class="pc bpc" id="L137" title="3 of 6 branches missed.">                    if (grid[row][col] == grid[row + 1][col]</span>
+                            &amp;&amp; grid[row][col] == grid[row + 2][col]
+                            &amp;&amp; grid[row][col] == grid[row + THREE][col]) {
+<span class="fc" id="L140">                        return true;</span>
+                    }
+                }
+            }
+        }
+
+        // Ellenőrzés átlósan (\)
+<span class="fc bfc" id="L147" title="All 2 branches covered.">        for (int row = 0; row &lt;= rows - WINNING_COUNT; row++) {</span>
+<span class="fc bfc" id="L148" title="All 2 branches covered.">            for (int col = 0; col &lt;= columns - WINNING_COUNT; col++) {</span>
+<span class="pc bpc" id="L149" title="1 of 2 branches missed.">                if (grid[row][col] != EMPTY_SLOT) {</span>
+<span class="nc bnc" id="L150" title="All 6 branches missed.">                    if (grid[row][col] == grid[row + 1][col + 1]</span>
+                            &amp;&amp; grid[row][col] == grid[row + 2][col + 2]
+                            &amp;&amp; grid[row][col] == grid[row + THREE]
+                            [col + THREE]) {
+<span class="nc" id="L154">                        return true;</span>
+                    }
+                }
+            }
+        }
+
+        // Ellenőrzés átlósan (/)
+<span class="fc bfc" id="L161" title="All 2 branches covered.">        for (int row = WINNING_COUNT - 1; row &lt; rows; row++) {</span>
+<span class="fc bfc" id="L162" title="All 2 branches covered.">            for (int col = 0; col &lt;= columns - WINNING_COUNT; col++) {</span>
+<span class="fc bfc" id="L163" title="All 2 branches covered.">                if (grid[row][col] != EMPTY_SLOT) {</span>
+<span class="pc bpc" id="L164" title="5 of 6 branches missed.">                    if (grid[row][col] == grid[row - 1][col + 1]</span>
+                            &amp;&amp; grid[row][col] == grid[row - 2][col + 2]
+                            &amp;&amp; grid[row][col] == grid[row - WINNING_COUNT + 1]
+                            [col + WINNING_COUNT - 1]) {
+<span class="nc" id="L168">                        return true;</span>
+                    }
+                }
+            }
+        }
+
+<span class="fc" id="L174">        return false; // Nincs győztes</span>
+    }
+
+    /**
+     * Kiírja a táblát a konzolra.
+     */
+    public void displayBoard() {
+<span class="fc" id="L181">        System.out.println(&quot;Tábla:&quot;);</span>
+<span class="fc bfc" id="L182" title="All 2 branches covered.">        for (int row = 0; row &lt; rows; row++) {</span>
+<span class="fc bfc" id="L183" title="All 2 branches covered.">            for (int col = 0; col &lt; columns; col++) {</span>
+<span class="fc bfc" id="L184" title="All 2 branches covered.">                char displayChar = (grid[row][col] == EMPTY_SLOT)</span>
+<span class="fc" id="L185">                        ? '.' : grid[row][col];</span>
+<span class="fc" id="L186">                System.out.print(displayChar + &quot; &quot;);</span>
+            }
+<span class="fc" id="L188">            System.out.println();</span>
+        }
+<span class="fc" id="L190">    }</span>
+
+    /**
+     * Ellenőrzi, hogy két Board objektum egyenlő-e.
+     *
+     * @param o Az összehasonlítandó objektum.
+     * @return True, ha egyenlő, különben false.
+     */
+    @Override
+    public boolean equals(final Object o) {
+<span class="pc bpc" id="L200" title="1 of 2 branches missed.">        if (this == o) {</span>
+<span class="nc" id="L201">            return true;</span>
+        }
+<span class="pc bpc" id="L203" title="1 of 2 branches missed.">        if (!(o instanceof Board)) {</span>
+<span class="nc" id="L204">            return false;</span>
+        }
+<span class="fc" id="L206">        Board board = (Board) o;</span>
+
+        // Ellenőrzi, hogy a méretek megegyeznek-e
+<span class="pc bpc" id="L209" title="2 of 4 branches missed.">        if (this.rows != board.rows || this.columns != board.columns) {</span>
+<span class="nc" id="L210">            return false;</span>
+        }
+
+        // Ellenőrzi, hogy a mátrixok megegyeznek-e
+<span class="fc bfc" id="L214" title="All 2 branches covered.">        for (int row = 0; row &lt; rows; row++) {</span>
+<span class="fc bfc" id="L215" title="All 2 branches covered.">            for (int col = 0; col &lt; columns; col++) {</span>
+<span class="fc bfc" id="L216" title="All 2 branches covered.">                if (this.grid[row][col] != board.grid[row][col]) {</span>
+<span class="fc" id="L217">                    return false;</span>
+                }
+            }
+        }
+<span class="fc" id="L221">        return true;</span>
+    }
+
+    /**
+     * Visszaadja a Board objektum hash kódját.
+     *
+     * @return A Board hash kódja.
+     */
+    @Override
+    public int hashCode() {
+<span class="fc" id="L231">        int result = HASH_MULTIPLIER * rows + columns;</span>
+<span class="fc bfc" id="L232" title="All 2 branches covered.">        for (int row = 0; row &lt; rows; row++) {</span>
+<span class="fc bfc" id="L233" title="All 2 branches covered.">            for (int col = 0; col &lt; columns; col++) {</span>
+<span class="fc" id="L234">                result = HASH_MULTIPLIER * result + grid[row][col];</span>
+            }
+        }
+<span class="fc" id="L237">        return result;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>

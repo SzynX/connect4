@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="hu"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DatabaseHelper.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">connect4</a> &gt; <a href="index.source.html" class="el_package">com.connect4</a> &gt; <span class="el_source">DatabaseHelper.java</span></div><h1>DatabaseHelper.java</h1><pre class="source lang-java linenums">package com.connect4;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+/**
+ * Utility osztály az adatbázis műveletekhez.
+ */
+public final class DatabaseHelper {
+    /**
+     * Database.
+     */
+    private static final String DATABASE_URL = &quot;jdbc:sqlite:connect4.db&quot;;
+    /**
+     * Várakozási idő.
+     */
+    private static final int TIMEOUT = 5000; // 5 másodperc várakozás
+
+    /**
+     * Privát konstruktor, hogy ne lehessen példányosítani.
+     */
+    private DatabaseHelper() {
+        // Privát konstruktor, hogy ne lehessen példányosítani
+    }
+
+    /**
+     * Kapcsolódik az SQLite adatbázishoz.
+     *
+     * @return a Connection objektum,
+     * amely az adatbázis kapcsolatot reprezentálja
+     * @throws SQLException ha hiba történik a kapcsolat létrehozása során
+     */
+    public static Connection connect() throws SQLException {
+        try {
+            // Betöltjük az SQLite JDBC drivert
+<span class="fc" id="L40">            Class.forName(&quot;org.sqlite.JDBC&quot;);</span>
+<span class="fc" id="L41">            Connection conn = DriverManager.getConnection(DATABASE_URL);</span>
+            // Beállítjuk a kapcsolatot
+<span class="fc" id="L43">            conn.setAutoCommit(false); // Kizárjuk az automatikus commitot</span>
+<span class="fc" id="L44">            conn.setTransactionIsolation(Connection.TRANSACTION_SERIALIZABLE);</span>
+<span class="fc" id="L45">            conn.setNetworkTimeout(null, TIMEOUT); // 5 másodperc várakozás</span>
+<span class="fc" id="L46">            return conn;</span>
+<span class="nc" id="L47">        } catch (ClassNotFoundException e) {</span>
+<span class="nc" id="L48">            e.printStackTrace();</span>
+<span class="nc" id="L49">            throw new SQLException(&quot;SQLite JDBC driver nem található.&quot;, e);</span>
+        }
+    }
+
+    /**
+     * Táblák létrehozása, ha még nem léteznek.
+     */
+    public static void createTable() {
+<span class="fc" id="L57">        String sql = &quot;CREATE TABLE IF NOT EXISTS players (&quot;</span>
+                + &quot;id INTEGER PRIMARY KEY AUTOINCREMENT,&quot;
+                + &quot;name TEXT NOT NULL,&quot;
+                +
+                &quot;wins &quot;
+                +
+                &quot;INTEGER DEFAULT 0);&quot;;
+<span class="fc" id="L64">        try (Connection conn = connect(); Statement stmt =</span>
+<span class="fc" id="L65">                conn.createStatement()) {</span>
+<span class="fc" id="L66">            stmt.execute(sql);</span>
+<span class="fc" id="L67">            conn.commit(); // Módosítások commitálása</span>
+<span class="fc" id="L68">            System.out.println(&quot;Tábla létrehozása sikeres &quot;</span>
+                    +
+                    &quot;vagy már létezik.&quot;);
+<span class="nc" id="L71">        } catch (SQLException e) {</span>
+<span class="nc" id="L72">            System.out.println(&quot;Hiba a tábla létrehozása során: &quot;</span>
+                    +
+<span class="nc" id="L74">                    e.getMessage());</span>
+<span class="fc" id="L75">        }</span>
+<span class="fc" id="L76">    }</span>
+
+    /**
+     * Az adatbázis nullázása
+     * (tábla törlés és
+     * újra létrehozás).
+     */
+    public static void resetDatabase() {
+<span class="nc" id="L84">        String deleteSql = &quot;DROP TABLE IF &quot;</span>
+                +
+                &quot;EXISTS players&quot;; // Töröljük a táblát
+<span class="nc" id="L87">        try (Connection conn = connect(); Statement stmt =</span>
+<span class="nc" id="L88">                conn.createStatement()) {</span>
+<span class="nc" id="L89">            stmt.execute(deleteSql); // Táblát töröljük</span>
+<span class="nc" id="L90">            createTable(); // Újra</span>
+            // létrehozzuk a táblát
+<span class="nc" id="L92">            conn.commit(); // Módosítások commitálása</span>
+<span class="nc" id="L93">            System.out.println(&quot;Az adatbázis sikeresen &quot;</span>
+                    +
+                    &quot;nullázva lett.&quot;);
+<span class="nc" id="L96">        } catch (SQLException e) {</span>
+<span class="nc" id="L97">            System.out.println(&quot;Hiba az adatbázis &quot;</span>
+                    +
+                    &quot;nullázása során: &quot;
+                    +
+<span class="nc" id="L101">                    e.getMessage());</span>
+<span class="nc" id="L102">        }</span>
+<span class="nc" id="L103">    }</span>
+
+    /**
+     * Új játékos hozzáadása vagy
+     * győzelem frissítése,
+     * ha már létezik a játékos.
+     *
+     * @param name a játékos neve
+     */
+    public static void
+    addPlayer(
+    final String name) {
+<span class="fc" id="L115">        String checkSql = &quot;SELECT id FROM players WHERE name = ?&quot;;</span>
+<span class="fc" id="L116">        try (Connection conn = connect(); PreparedStatement checkStmt =</span>
+<span class="fc" id="L117">                conn.prepareStatement(checkSql)) {</span>
+<span class="fc" id="L118">            checkStmt.setString(1, name);</span>
+<span class="fc" id="L119">            ResultSet rs =</span>
+<span class="fc" id="L120">                    checkStmt.executeQuery();</span>
+
+            // Ha létezik a játékos,
+            // frissítjük a győzelmeit
+<span class="fc bfc" id="L124" title="All 2 branches covered.">            if (rs.next()) {</span>
+<span class="fc" id="L125">                updateWins(name);</span>
+            } else {
+                // Ha nem létezik,
+                // új játékos hozzáadása
+<span class="fc" id="L129">                String insertSql = &quot;INSERT INTO players &quot;</span>
+                        +
+                        &quot;(name, wins) VALUES (?, 0)&quot;;
+<span class="fc" id="L132">                try (PreparedStatement pstmt =</span>
+<span class="fc" id="L133">                             conn.prepareStatement(insertSql)) {</span>
+<span class="fc" id="L134">                    pstmt.setString(1, name);</span>
+<span class="fc" id="L135">                    pstmt.executeUpdate();</span>
+<span class="fc" id="L136">                    conn.commit(); // Módosítások commitálása</span>
+                }
+            }
+<span class="nc" id="L139">        } catch (SQLException e) {</span>
+<span class="nc" id="L140">            System.out.println(&quot;Hiba a játékos hozzáadása &quot;</span>
+                    +
+                    &quot;vagy frissítése során: &quot;
+                    +
+<span class="nc" id="L144">                    e.getMessage());</span>
+<span class="fc" id="L145">        }</span>
+<span class="fc" id="L146">    }</span>
+
+    /**
+     * A játékos győzelmeinek
+     * frissítése.
+     *
+     * @param name a játékos neve,
+     *             akinek a
+     *             győzelmét frissítjük
+     */
+    public static void updateWins(
+    final String name) {
+<span class="fc" id="L158">        String sql = &quot;UPDATE players SET wins = &quot;</span>
+                +
+                &quot;wins + 1 WHERE name = ?&quot;;
+<span class="fc" id="L161">        try (Connection conn = connect();</span>
+<span class="fc" id="L162">             PreparedStatement pstmt =</span>
+<span class="fc" id="L163">                conn.prepareStatement(sql)) {</span>
+<span class="fc" id="L164">            pstmt.setString(1, name);</span>
+<span class="fc" id="L165">            pstmt.executeUpdate();</span>
+<span class="fc" id="L166">            conn.commit(); // Módosítások commitálása</span>
+<span class="fc" id="L167">        } catch (SQLException e) {</span>
+<span class="fc" id="L168">            System.out.println(&quot;Hiba a győzelmek &quot;</span>
+                    +
+                    &quot;frissítése &quot;
+                    +
+<span class="fc" id="L172">                    &quot;során: &quot; + e.getMessage());</span>
+<span class="fc" id="L173">        }</span>
+<span class="fc" id="L174">    }</span>
+
+    /**
+     * A high score
+     * táblázat lekérdezése.
+     */
+    public static void displayHighScores() {
+<span class="fc" id="L181">        String sql = &quot;SELECT name, wins FROM players&quot;</span>
+                +
+                &quot; ORDER BY wins DESC LIMIT 10&quot;;
+<span class="fc" id="L184">        try (Connection conn = connect();</span>
+<span class="fc" id="L185">             Statement stmt =</span>
+<span class="fc" id="L186">                conn.createStatement();</span>
+<span class="fc" id="L187">             ResultSet rs =</span>
+<span class="fc" id="L188">                     stmt.executeQuery(sql)) {</span>
+<span class="fc bfc" id="L189" title="All 2 branches covered.">            while (rs.next()) {</span>
+<span class="fc" id="L190">                System.out.println(rs.getString(&quot;name&quot;) + &quot;: &quot;</span>
+                        +
+<span class="fc" id="L192">                        rs.getInt(&quot;wins&quot;)</span>
+                        +
+                        &quot; wins&quot;);
+            }
+<span class="nc" id="L196">        } catch (SQLException e) {</span>
+<span class="nc" id="L197">            System.out.println(&quot;Hiba a high score &quot;</span>
+                    +
+                    &quot;táblázat lekérdezése során: &quot;
+                    +
+<span class="nc" id="L201">                    e.getMessage());</span>
+<span class="fc" id="L202">        }</span>
+<span class="fc" id="L203">    }</span>
+
+    /**
+     * A fő program, amely bemutatja a
+     * metódusok működését.
+     *
+     * @param args a parancssori argumentumok
+     */
+    public static void main(final String[] args) {
+<span class="nc" id="L212">        createTable(); // Tábla létrehozása</span>
+<span class="nc" id="L213">        addPlayer(&quot;Alice&quot;); // Játékos hozzáadása</span>
+<span class="nc" id="L214">        addPlayer(&quot;Bob&quot;); // Játékos hozzáadása</span>
+<span class="nc" id="L215">        updateWins(&quot;Alice&quot;); // Alice győzelmének frissítése</span>
+<span class="nc" id="L216">        displayHighScores(); // High score táblázat megjelenítése</span>
+<span class="nc" id="L217">        resetDatabase(); // Adatbázis nullázása</span>
+<span class="nc" id="L218">        displayHighScores(); // High score táblázat újra megjelenítése</span>
+<span class="nc" id="L219">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.10.202304240956</span></div></body></html>
